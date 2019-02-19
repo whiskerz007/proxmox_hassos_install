@@ -4,8 +4,11 @@ VMID=$(cat<<EOF | python3
 import json
 with open('/etc/pve/.vmlist') as vmlist:
         vmids = json.load(vmlist)
-last_vm = sorted(vmids['ids'].keys())[-1:][0]
-print(int(last_vm)+1) if last_vm else print(100)
+if 'ids' not in vmids:
+        print(100)
+else:
+        last_vm = sorted(vmids['ids'].keys())[-1:][0]
+        print(int(last_vm)+1)
 EOF
 ) && \
 echo -e "\n\n\n" \

@@ -45,11 +45,12 @@ echo -e "\n\n\n" \
         "********************************\n" \
         "*       Creating new VM        *\n" \
         "********************************\n" && \
-qm create $VMID -bios ovmf -bootdisk sata0 -efidisk0 local-lvm:vm-${VMID}-disk-0,size=128K \
+DISKLOCATION=$(cat /etc/pve/storage.cfg | grep local- | cut -f2 -d" " | sed -n 1p)
+qm create $VMID -bios ovmf -bootdisk sata0 -efidisk0 ${DISKLOCATION}:vm-${VMID}-disk-0,size=128K \
         -name $(sed -e "s/\_//g" -e "s/.vdi.gz//" <<< $FILE) -net0 virtio,bridge=vmbr0 \
-        -onboot 1 -ostype l26 -sata0 local-lvm:vm-${VMID}-disk-1,size=6G \
+        -onboot 1 -ostype l26 -sata0 ${DISKLOCATION}:vm-${VMID}-disk-1,size=6G \
         -scsihw virtio-scsi-pci && \
-pvesm alloc local-lvm $VMID vm-${VMID}-disk-0 128 1>&/dev/null && \
+pvesm alloc ${DISKLOCATION} $VMID vm-${VMID}-disk-0 128 1>&/dev/null && \
 qm importdisk $VMID ${FILE%".gz"} local-lvm 1>&/dev/null && \
 echo -e "\n\n\n" \
         "********************************\n" \

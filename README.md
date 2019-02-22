@@ -26,12 +26,25 @@ hassio login:
 - When you see the `hassio > ` prompt, type `login`
 - You should now see a `# ` prompt.
 
-## Show DHCP Address
+## Show Current IP Address
 
-To get the DHCP address assigned to the VM
-- At the root prompt type `ls -l /sys/class/net` and look for a name that looks like `enp0s18`
-- Use that name in the following command `ip addr show dev enp0s18`
-- Your IP address will be listed right after `inet`
+To get the current IP address assigned to the VM
+- At the root prompt type `nmcli -g ip4.address d sh $(nmcli -g device c)`
+- The response will be the IP address with subnet mask or nothing
+
+**Note:** _If DHCP is configured and nothing is shown, check DHCP server and VM network settings_
+
+## Configure Network for Static IP Address
+
+To set a static IP address, use the following as an example
+- At the root prompt type `nmcli c mod $(nmcli -g uuid c) ipv4.method manual ipv4.addresses "192.168.20.170/24" ipv4.gateway "192.168.20.1" ipv4.dns "8.8.8.8,8.8.4.4"`
+- At the root prompt type `nmcli c up $(nmcli -g uuid c)`
+
+## Configure Network for DHCP
+
+To remove all static IP addresses and enable DHCP
+- At the root prompt type `nmcli c mod $(nmcli -g uuid c) ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""`
+- At the root prompt type `nmcli c up $(nmcli -g uuid c)`
 
 ## Resize Disk
 

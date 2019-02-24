@@ -46,6 +46,18 @@ To remove all static IP addresses and enable DHCP
 - At the root prompt type `nmcli c mod $(nmcli -g uuid c) ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""`
 - At the root prompt type `nmcli c up $(nmcli -g uuid c)`
 
+## Default Interface Name
+
+To get the default interface name
+- At the root prompt type `nmcli -g device c`
+- The response with be the interface name
+
+## Change Hostname
+
+To change the HassOS VM hostname
+- At the root prompt type `hostnamectl set-hostname your-new-hostname`
+- You can verify the change by logging out with `exit`, the last line printed will be `your-new-hostname login: `
+
 ## Resize Disk
 
 To resize the disk after the first boot
@@ -53,5 +65,5 @@ To resize the disk after the first boot
 - Shutdown the VM
 - Resize the disk to the desired size
 - At the root prompt type `sgdisk -e /dev/sda`
-- Reboot the VM
+- At the root prompt type `reboot`
 - Verify resize was successful by typing `df -h /dev/sda8` at the root prompt

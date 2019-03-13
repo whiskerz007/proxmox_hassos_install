@@ -56,8 +56,8 @@ VMDISK_EXT=`if [ "$STORAGE_TYPE" = "dir" ];then echo ".qcow2";fi`
 VMDISK_REF=`if [ "$STORAGE_TYPE" = "dir" ];then echo "${VMID}/";fi`${VMDISK}
 qm create $VMID -bios ovmf -name $(sed -e "s/\_//g" -e "s/.vdi.gz//" <<< $FILE) \
         -net0 virtio,bridge=vmbr0 -onboot 1 -ostype l26 -scsihw virtio-scsi-pci && \
-pvesm alloc $VM_STORAGE $VMID ${VMDISK}0${VMDISK_EXT} 128 && \
-qm importdisk $VMID ${FILE%".gz"} $VM_STORAGE `if [ ! -z $VMDISK_EXT ];then echo "-format qcow2";fi`  && \
+pvesm alloc $VM_STORAGE $VMID ${VMDISK}0${VMDISK_EXT} 128 1>&/dev/null && \
+qm importdisk $VMID ${FILE%".gz"} $VM_STORAGE `if [ ! -z $VMDISK_EXT ];then echo "-format qcow2";fi` 1>&/dev/null && \
 qm set $VMID -bootdisk sata0 -efidisk0 ${VM_STORAGE}:${VMDISK_REF}0${VMDISK_EXT},size=128K \
         -sata0 ${VM_STORAGE}:${VMDISK_REF}1${VMDISK_EXT},size=6G > /dev/null && \
 echo -e "\n\n\n" \

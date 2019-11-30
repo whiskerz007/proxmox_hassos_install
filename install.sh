@@ -44,6 +44,7 @@ echo -e "\n\n\n" \
     "********************************\n" \
     "*  Getting latest HassOS Info  *\n" \
     "********************************\n"
+RELEASE_EXT=vmdk.gz
 URL=$(cat<<EOF | python3
 import requests
 url = 'https://api.github.com/repos/home-assistant/hassos/releases/latest'
@@ -51,7 +52,7 @@ r = requests.get(url).json()
 if 'message' in r:
     exit()
 for asset in r['assets']:
-    if asset['name'].endswith('vdi.gz'):
+    if asset['name'].endswith('$RELEASE_EXT'):
         print(asset['browser_download_url'])
 EOF
 )
@@ -83,7 +84,7 @@ for i in {0,1}; do
     eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT}
     eval DISK${i}_REF=${STORAGE}:$DISK_REF${!disk}
 done
-qm create $VMID -bios ovmf -name $(sed -e "s/\_//g" -e "s/.vdi.gz//" <<< $FILE) \
+qm create $VMID -bios ovmf -name $(sed -e "s/\_//g" -e "s/.${RELEASE_EXT}//" <<< $FILE) \
     -net0 virtio,bridge=vmbr0 -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
 qm importdisk $VMID ${FILE%".gz"} $STORAGE $IMPORT_OPT 1>&/dev/null

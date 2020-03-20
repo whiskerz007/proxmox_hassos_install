@@ -35,12 +35,30 @@ TMP=`mktemp -d`
 pushd $TMP >/dev/null
 
 # Select storage location
-STORAGE=${1:-local-lvm}
-pvesm list $STORAGE >& /dev/null ||
-    die "'$STORAGE' is not a valid storage ID."
-pvesm status -content images -storage $STORAGE >&/dev/null ||
-    die "'$STORAGE' does not allow 'Disk image' to be stored."
-STORAGE_TYPE=`pvesm status -storage $STORAGE | awk 'NR>1 {print $2}'`
+while read -r line; do
+  TAG=$(echo $line | awk '{print $1}')
+  TYPE=$(echo $line | awk '{printf "%-10s", $2}')
+  FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
+  ITEM="  Type: $TYPE Free: $FREE "
+  OFFSET=2
+  if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
+    MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
+  fi
+  STORAGE_MENU+=( "$TAG" "$ITEM" "OFF" )
+done < <(pvesm status -content images | awk 'NR>1')
+if [ $((${#STORAGE_MENU[@]}/3)) -eq 0 ]; then
+  warn "'Disk image' needs to be selected for at least one storage location."
+  die "Unable to detect valid storage location."
+elif [ $((${#STORAGE_MENU[@]}/3)) -eq 1 ]; then
+  STORAGE=${STORAGE_MENU[0]}
+else
+  while [ -z "${STORAGE:+x}" ]; do
+    STORAGE=$(whiptail --title "Storage Pools" --radiolist \
+    "Which storage pool you would like to use for the container?\n\n" \
+    16 $(($MSG_MAX_LENGTH + 23)) 6 \
+    "${STORAGE_MENU[@]}" 3>&1 1>&2 2>&3) || exit
+  done
+fi
 info "Using '$STORAGE' for storage location."
 
 # Get the next guest VM/LXC ID
@@ -76,6 +94,7 @@ msg "Extracting disk image..."
 gunzip -f $FILE
 
 # Create variables for container disk
+STORAGE_TYPE=`pvesm status -storage $STORAGE | awk 'NR>1 {print $2}'`
 if [ "$STORAGE_TYPE" = "dir" ]; then
     DISK_EXT=".qcow2"
     DISK_REF="$VMID/"

@@ -11,16 +11,16 @@ trap die ERR
 trap cleanup EXIT
 
 function error_exit() {
-    REASON=$1
-    MSG="\e[91mERROR: \e[93m$EXIT@"
-    if [ -z "$REASON" ]; then
-        MSG="$MSG$LINE:"
-        REASON="Unknown failure occured."
-    else
-        MSG="$MSG`echo $(( $LINE - 1 ))`:"
-    fi
-    echo -e "$MSG \e[97m$REASON\e[39m\e[49m"
-    exit $EXIT
+  trap - ERR
+  local DEFAULT='Unknown failure occured.'
+  local REASON="\e[97m${1:-$DEFAULT}\e[39m"
+  local FLAG="\e[91m[ERROR] \e[93m$EXIT@$LINE"
+  msg "$FLAG $REASON"
+  exit $EXIT
+}
+function msg() {
+  local TEXT="$1"
+  echo -e "$TEXT"
 }
 function cleanup() {
     popd >/dev/null
@@ -46,10 +46,10 @@ else:
     print(int(last_vm)+1)
 EOF
 )
-echo -e "\n\n\n" \
-    "********************************\n" \
-    "*  Getting latest HassOS Info  *\n" \
-    "********************************\n"
+msg "
+    ********************************
+    *  Getting latest HassOS Info  *
+    ********************************"
 RELEASE_EXT=vmdk.gz
 URL=$(cat<<EOF | python3
 import requests
@@ -65,21 +65,21 @@ EOF
 if [ -z "$URL" ]; then
     die "Github has returned an error. A rate limit may have been applied to your connection."
 fi
-echo -e "\n\n\n" \
-    "********************************\n" \
-    "*      Downloading HassOS      *\n" \
-    "********************************\n"
+msg "\n\n\n
+    ********************************
+    *      Downloading HassOS      *
+    ********************************"
 wget -q --show-progress $URL
 FILE=$(basename $URL)
-echo -e "\n\n\n" \
-    "********************************\n" \
-    "*      Extracting HassOS       *\n" \
-    "********************************\n"
+msg "\n\n\n
+    ********************************
+    *      Extracting HassOS       *
+    ********************************"
 gunzip -f $FILE
-echo -e "\n\n\n" \
-    "********************************\n" \
-    "*       Creating new VM        *\n" \
-    "********************************\n"
+msg "\n\n\n
+    ********************************
+    *       Creating new VM        *
+    ********************************"
 if [ "$STORAGE_TYPE" = "dir" ]; then
     DISK_EXT=".qcow2"
     DISK_REF="$VMID/"
@@ -96,8 +96,8 @@ pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
 qm importdisk $VMID ${FILE%".gz"} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm set $VMID -bootdisk sata0 -efidisk0 ${DISK0_REF},size=128K \
     -sata0 ${DISK1_REF},size=6G > /dev/null
-echo -e "\n\n\n" \
-    "********************************\n" \
-    "*    Completed Successfully    *\n" \
-    "*       New VM ID is \e[1m$VMID\e[0m       *\n" \
-    "********************************\n"
+msg "\n\n\n
+    ********************************
+    *    Completed Successfully    *
+    *       New VM ID is \e[1m$VMID\e[0m       *
+    ********************************"

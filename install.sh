@@ -108,8 +108,9 @@ done
 
 # Create VM
 msg "Creating VM..."
-qm create $VMID -bios ovmf -name $(sed -e "s/\_//g" -e "s/.${RELEASE_EXT}//" <<< $FILE) \
-    -net0 virtio,bridge=vmbr0 -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+VM_NAME=$(sed -e "s/\_//g" -e "s/.${RELEASE_EXT}//" <<< $FILE)
+qm create $VMID -agent 1 -bios ovmf -name $VM_NAME -net0 virtio,bridge=vmbr0 \
+  -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
 qm importdisk $VMID ${FILE%".gz"} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm set $VMID -bootdisk sata0 -efidisk0 ${DISK0_REF},size=128K \

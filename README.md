@@ -24,7 +24,13 @@ homeassistant login:
 
 ## Show Current IP Address
 
-To get the current IP address assigned to the VM
+To get the current IP address assigned to the VM from the Proxmox interface
+- Click on the VM in the list of containers at the left side panel
+- Click `Summary` tab located beside the list of containers
+- Click `More` near `IPs` in the top left section
+- You can find the assigned IP addresses on the line with the name similar to `enp0s18`
+
+To get the current IP address assigned to the VM from the command line
 - At the root prompt type `nmcli -g ip4.address d sh $(nmcli -g device c)`
 - The response will be the IP address with subnet mask or nothing
 

@@ -44,17 +44,7 @@ STORAGE_TYPE=`pvesm status -storage $STORAGE | awk 'NR>1 {print $2}'`
 info "Using '$STORAGE' for storage location."
 
 # Get the next guest VM/LXC ID
-VMID=$(cat<<EOF | python3
-import json
-with open('/etc/pve/.vmlist') as vmlist:
-    vmids = json.load(vmlist)
-if 'ids' not in vmids:
-    print(100)
-else:
-    last_vm = sorted(vmids['ids'].keys())[-1:][0]
-    print(int(last_vm)+1)
-EOF
-)
+VMID=$(pvesh get /cluster/nextid)
 info "Container ID is $VMID."
 
 # Get latest Home Assistant disk image archive URL

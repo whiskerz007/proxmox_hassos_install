@@ -87,13 +87,13 @@ if [ "$STORAGE_TYPE" = "dir" ]; then
 fi
 for i in {0,1}; do
     disk="DISK$i"
-    eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT}
-    eval DISK${i}_REF=${STORAGE}:$DISK_REF${!disk}
+    eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
+    eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 qm create $VMID -bios ovmf -name $(sed -e "s/\_//g" -e "s/.${RELEASE_EXT}//" <<< $FILE) \
     -net0 virtio,bridge=vmbr0 -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
-qm importdisk $VMID ${FILE%".gz"} $STORAGE $IMPORT_OPT 1>&/dev/null
+qm importdisk $VMID ${FILE%".gz"} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm set $VMID -bootdisk sata0 -efidisk0 ${DISK0_REF},size=128K \
     -sata0 ${DISK1_REF},size=6G > /dev/null
 echo -e "\n\n\n" \

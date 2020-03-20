@@ -29,12 +29,15 @@ function cleanup() {
 TMP=`mktemp -d`
 pushd $TMP >/dev/null
 
+# Select storage location
 STORAGE=${1:-local-lvm}
 pvesm list $STORAGE >& /dev/null ||
     die "'$STORAGE' is not a valid storage ID."
 pvesm status -content images -storage $STORAGE >&/dev/null ||
     die "'$STORAGE' does not allow 'Disk image' to be stored."
 STORAGE_TYPE=`pvesm status -storage $STORAGE | awk 'NR>1 {print $2}'`
+
+# Get the next guest VM/LXC ID
 VMID=$(cat<<EOF | python3
 import json
 with open('/etc/pve/.vmlist') as vmlist:
@@ -46,6 +49,8 @@ else:
     print(int(last_vm)+1)
 EOF
 )
+
+# Get latest Home Assistant disk image archive URL
 msg "
     ********************************
     *  Getting latest HassOS Info  *
@@ -65,21 +70,27 @@ EOF
 if [ -z "$URL" ]; then
     die "Github has returned an error. A rate limit may have been applied to your connection."
 fi
+
+# Download Home Assistant disk image archive
 msg "\n\n\n
     ********************************
     *      Downloading HassOS      *
     ********************************"
 wget -q --show-progress $URL
 FILE=$(basename $URL)
+
+# Extract Home Assistant disk image
 msg "\n\n\n
     ********************************
     *      Extracting HassOS       *
     ********************************"
 gunzip -f $FILE
+
 msg "\n\n\n
     ********************************
     *       Creating new VM        *
     ********************************"
+# Create variables for container disk
 if [ "$STORAGE_TYPE" = "dir" ]; then
     DISK_EXT=".qcow2"
     DISK_REF="$VMID/"
@@ -90,12 +101,15 @@ for i in {0,1}; do
     eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
     eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
+
+# Create VM
 qm create $VMID -bios ovmf -name $(sed -e "s/\_//g" -e "s/.${RELEASE_EXT}//" <<< $FILE) \
     -net0 virtio,bridge=vmbr0 -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
 qm importdisk $VMID ${FILE%".gz"} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm set $VMID -bootdisk sata0 -efidisk0 ${DISK0_REF},size=128K \
     -sata0 ${DISK1_REF},size=6G > /dev/null
+
 msg "\n\n\n
     ********************************
     *    Completed Successfully    *

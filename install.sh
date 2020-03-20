@@ -28,11 +28,11 @@ function msg() {
   echo -e "$TEXT"
 }
 function cleanup() {
-    popd >/dev/null
-    rm -rf $TMP
+  popd >/dev/null
+  rm -rf $TEMP_DIR
 }
-TMP=`mktemp -d`
-pushd $TMP >/dev/null
+TEMP_DIR=$(mktemp -d)
+pushd $TEMP_DIR >/dev/null
 
 # Select storage location
 while read -r line; do
@@ -73,20 +73,20 @@ import requests
 url = 'https://api.github.com/repos/home-assistant/hassos/releases/latest'
 r = requests.get(url).json()
 if 'message' in r:
-    exit()
+  exit()
 for asset in r['assets']:
-    if asset['name'].endswith('$RELEASE_EXT'):
-        print(asset['browser_download_url'])
+  if asset['name'].endswith('$RELEASE_EXT'):
+    print(asset['browser_download_url'])
 EOF
 )
 if [ -z "$URL" ]; then
-    die "Github has returned an error. A rate limit may have been applied to your connection."
+  die "Github has returned an error. A rate limit may have been applied to your connection."
 fi
 
 # Download Home Assistant disk image archive
 msg "Downloading disk image..."
 wget -q --show-progress $URL
-msg "\e[1A\e[0K\e[1A" #Overwrite output from wget
+echo -en "\e[1A\e[0K" #Overwrite output from wget
 FILE=$(basename $URL)
 
 # Extract Home Assistant disk image
@@ -94,16 +94,16 @@ msg "Extracting disk image..."
 gunzip -f $FILE
 
 # Create variables for container disk
-STORAGE_TYPE=`pvesm status -storage $STORAGE | awk 'NR>1 {print $2}'`
+STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 if [ "$STORAGE_TYPE" = "dir" ]; then
-    DISK_EXT=".qcow2"
-    DISK_REF="$VMID/"
-    IMPORT_OPT="-format qcow2"
+  DISK_EXT=".qcow2"
+  DISK_REF="$VMID/"
+  IMPORT_OPT="-format qcow2"
 fi
 for i in {0,1}; do
-    disk="DISK$i"
-    eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
-    eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
+  disk="DISK$i"
+  eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
+  eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
 # Create VM
@@ -114,6 +114,6 @@ qm create $VMID -agent 1 -bios ovmf -name $VM_NAME -net0 virtio,bridge=vmbr0 \
 pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
 qm importdisk $VMID ${FILE%".gz"} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm set $VMID -bootdisk sata0 -efidisk0 ${DISK0_REF},size=128K \
-    -sata0 ${DISK1_REF},size=6G > /dev/null
+  -sata0 ${DISK1_REF},size=6G > /dev/null
 
 info "Completed Successfully! New VM ID is \e[1m$VMID\e[0m."

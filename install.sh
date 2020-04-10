@@ -16,6 +16,7 @@ function error_exit() {
   local REASON="\e[97m${1:-$DEFAULT}\e[39m"
   local FLAG="\e[91m[ERROR] \e[93m$EXIT@$LINE"
   msg "$FLAG $REASON"
+  [ ! -z ${VMID-} ] && cleanup_vmid
   exit $EXIT
 }
 function info() {
@@ -26,6 +27,14 @@ function info() {
 function msg() {
   local TEXT="$1"
   echo -e "$TEXT"
+}
+function cleanup_vmid() {
+  if $(qm status $VMID &>/dev/null); then
+    if [ "$(qm status $VMID | awk '{print $2}')" == "running" ]; then
+      qm stop $VMID
+    fi
+    qm destroy $VMID
+  fi
 }
 function cleanup() {
   popd >/dev/null

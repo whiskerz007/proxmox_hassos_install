@@ -22,6 +22,17 @@ homeassistant login:
 - When you see the `hassio > ` prompt, type `login`
 - You should now see a `# ` prompt.
 
+## Add a serial port
+
+By adding a serial port, you are able to use a different interface to interact with the VM. When you click on the down arrow next to `Console` you will be able to use `xterm.js` which enables you to `Right-Click` and get access to `Copy` and `Paste` functions. If the serial port was already added by the install script, no further actions are required to enable the functionality.
+- Click on the VM in the list of containers at the left side panel
+- Click `Hardware` tab located beside the list of containers
+- Click `Add` located beside `Summary` tab, then click `Serial Port`
+- `Serial Port` should be set to `0` in the input box, then click `Add`
+- Start the VM, if it isn't already
+- At the root prompt type `sed -i 's/$/ console=ttyS0/' /mnt/boot/cmdline.txt`
+- A `Shutdown` and `Start` is required for the changes to take effect
+
 ## Show Current IP Address
 
 To get the current IP address assigned to the VM from the Proxmox interface

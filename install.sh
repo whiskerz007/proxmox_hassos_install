@@ -19,6 +19,11 @@ function error_exit() {
   [ ! -z ${VMID-} ] && cleanup_vmid
   exit $EXIT
 }
+function warn() {
+  local REASON="\e[97m$1\e[39m"
+  local FLAG="\e[93m[WARNING]\e[39m"
+  msg "$FLAG $REASON"
+}
 function info() {
   local REASON="$1"
   local FLAG="\e[36m[INFO]\e[39m"
@@ -124,5 +129,36 @@ pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
 qm importdisk $VMID ${FILE%".gz"} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm set $VMID -bootdisk sata0 -efidisk0 ${DISK0_REF},size=128K \
   -sata0 ${DISK1_REF},size=6G > /dev/null
+
+# Add serial port and enable console output
+set +o errtrace
+(
+  msg "Adding serial port and configuring console..."
+  trap '
+    warn "Unable to configure serial port. VM is still functional."
+    if [ "$(qm config $VMID | sed -n ''/serial0/p'')" != "" ]; then
+      qm set $VMID --delete serial0 >/dev/null
+    fi
+    exit
+  ' ERR
+  if [ "$(command -v kpartx)" = "" ]; then
+    msg "Installing 'kpartx'..."
+    apt-get update >/dev/null
+    apt-get -qqy install kpartx &>/dev/null
+  fi
+  DISK1_PATH="$(pvesm path $DISK1_REF)"
+  DISK1_PART1="$(kpartx -al $DISK1_PATH | awk 'NR==1 {print $1}')"
+  DISK1_PART1_PATH="/dev/mapper/$DISK1_PART1"
+  TEMP_MOUNT="${TEMP_DIR}/mnt"
+  trap '
+    findmnt $TEMP_MOUNT >/dev/null && umount $TEMP_MOUNT
+    command -v kpartx >/dev/null && kpartx -d $DISK1_PATH
+  ' EXIT
+  kpartx -a $DISK1_PATH
+  mkdir $TEMP_MOUNT
+  mount $DISK1_PART1_PATH $TEMP_MOUNT
+  sed -i 's/$/ console=ttyS0/' ${TEMP_MOUNT}/cmdline.txt
+  qm set $VMID -serial0 socket >/dev/null
+)
 
 info "Completed Successfully! New VM ID is \e[1m$VMID\e[0m."

@@ -84,13 +84,21 @@ msg "Getting URL for latest Home Assistant disk image..."
 RELEASE_EXT=vmdk.gz
 URL=$(cat<<EOF | python3
 import requests
-url = 'https://api.github.com/repos/home-assistant/operating-system/releases/latest'
+url = 'https://api.github.com/repos/home-assistant/operating-system/releases'
 r = requests.get(url).json()
 if 'message' in r:
   exit()
-for asset in r['assets']:
-  if asset['name'].endswith('$RELEASE_EXT'):
-    print(asset['browser_download_url'])
+for release in r:
+  if not release['prerelease']:
+    continue
+  for asset in release['assets']:
+    if asset['name'].endswith('$RELEASE_EXT'):
+      global image_url
+      image_url = asset['browser_download_url']
+      break
+  if 'image_url' in globals():
+    print(image_url)
+    break
 EOF
 )
 if [ -z "$URL" ]; then

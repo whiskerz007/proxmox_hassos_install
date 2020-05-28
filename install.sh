@@ -89,7 +89,7 @@ r = requests.get(url).json()
 if 'message' in r:
   exit()
 for release in r:
-  if not release['prerelease']:
+  if release['prerelease']:
     continue
   for asset in release['assets']:
     if asset['name'].endswith('$RELEASE_EXT'):

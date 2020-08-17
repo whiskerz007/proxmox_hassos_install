@@ -133,9 +133,11 @@ msg "Creating VM..."
 VM_NAME=$(sed -e "s/\_//g" -e "s/.${RELEASE_EXT}//" <<< $FILE)
 qm create $VMID -agent 1 -bios ovmf -name $VM_NAME -net0 virtio,bridge=vmbr0 \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
+EFI_SIZE=128K
+truncate -s $EFI_SIZE efi
+qm importdisk $VMID efi $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm importdisk $VMID ${FILE%".gz"} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
-qm set $VMID -bootdisk sata0 -efidisk0 ${DISK0_REF},size=128K \
+qm set $VMID -bootdisk sata0 -efidisk0 ${DISK0_REF},size=$EFI_SIZE \
   -sata0 ${DISK1_REF},size=6G > /dev/null
 
 # Add serial port and enable console output

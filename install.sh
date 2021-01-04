@@ -81,7 +81,7 @@ info "Container ID is $VMID."
 
 # Get latest Home Assistant disk image archive URL
 msg "Getting URL for latest Home Assistant disk image..."
-RELEASE_EXT=vmdk.gz
+RELEASE_EXT=vmdk.xz
 URL=$(cat<<EOF | python3
 import requests
 url = "https://api.github.com/repos/home-assistant/operating-system/releases"
@@ -110,7 +110,7 @@ FILE=$(basename $URL)
 
 # Extract Home Assistant disk image
 msg "Extracting disk image..."
-gunzip -f $FILE
+xz -d $FILE
 
 # Create variables for container disk
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
@@ -131,7 +131,7 @@ VM_NAME=$(sed -e "s/\_//g" -e "s/.${RELEASE_EXT}//" <<< $FILE)
 qm create $VMID -agent 1 -bios ovmf -name $VM_NAME -net0 virtio,bridge=vmbr0 \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
-qm importdisk $VMID ${FILE%".gz"} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
+qm importdisk $VMID ${FILE%".xz"} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm set $VMID \
   -efidisk0 ${DISK0_REF},size=128K \
   -sata0 ${DISK1_REF},size=6G > /dev/null

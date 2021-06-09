@@ -112,6 +112,7 @@ FILE=$(basename $URL)
 msg "Extracting disk image..."
 case $FILE in
   *"gz") gunzip -f $FILE;;
+  *"zip") unzip -o $FILE;;
   *"xz") xz -d $FILE;;
   *) die "Unable to handle file extension '${FILE##*.}'.";;
 esac

@@ -108,10 +108,20 @@ wget -q --show-progress $URL
 echo -en "\e[1A\e[0K" #Overwrite output from wget
 FILE=$(basename $URL)
 
+# Check for and Install unzip (if needed)
+if [[ $FILE == *.zip ]]; then
+  msg "Checking for unzip command"
+  if ! command -v unzip &> /dev/null; then
+    msg "unzip not found, installing..."
+    apt install unzip -y
+  fi
+fi
+
 # Extract Home Assistant disk image
 msg "Extracting disk image..."
 case $FILE in
   *"gz") gunzip -f $FILE;;
+  *"zip") unzip -o $FILE;;
   *"xz") xz -d $FILE;;
   *) die "Unable to handle file extension '${FILE##*.}'.";;
 esac

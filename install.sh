@@ -113,7 +113,7 @@ msg "Extracting disk image..."
 case $FILE in
   *"gz") gunzip -f $FILE;;
   *"xz") xz -d $FILE;;
-  *"zip) unzip -q $FILE;;
+  *"zip") unzip -q $FILE;;
   *) die "Unable to handle file extension '${FILE##*.}'.";;
 esac
 

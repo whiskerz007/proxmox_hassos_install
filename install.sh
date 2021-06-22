@@ -119,11 +119,16 @@ esac
 
 # Create variables for container disk
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
-if [ "$STORAGE_TYPE" = "dir" ]; then
-  DISK_EXT=".qcow2"
-  DISK_REF="$VMID/"
-  IMPORT_OPT="-format qcow2"
-fi
+msg "Extracting disk image..."
+case $STORAGE_TYPE in
+  nfs|dir)
+        DISK_EXT=".qcow2"
+        DISK_REF="$VMID/"
+        IMPORT_OPT="-format qcow2"
+        ;;
+  *) echo "next"
+;;
+esac
 for i in {0,1}; do
   disk="DISK$i"
   eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}

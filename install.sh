@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+
+
 # Setup script environment
 set -o errexit  #Exit immediately if a pipeline returns a non-zero status
 set -o errtrace #Trap ERR from shell functions, command substitutions, and commands from subshell
@@ -9,6 +11,15 @@ shopt -s expand_aliases
 alias die='EXIT=$? LINE=$LINENO error_exit'
 trap die ERR
 trap cleanup EXIT
+
+#remove susbcription
+rm -rf /etc/apt/sources.list.d/pve-enterprise.list
+#add pve-no
+echo "deb http://download.proxmox.com/debian/pve bullseye pve-no-subscription" > /etc/apt/sources.list.d/pve-no-subscription.list
+apt-get update
+apt-get install -y zip unzip parted util-linux
+
+
 
 function error_exit() {
   trap - ERR

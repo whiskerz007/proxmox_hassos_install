@@ -1,9 +1,10 @@
 # New Proxmox VM with Home Assistant
-
+# add zip support
+forked from whiskerz007/proxmox_hassos_install
 This script will create a new Proxmox VM with the latest version of Home Assistant. To create a new VM, run the following in a SSH session or the console from Proxmox interface
 
 ```
-bash -c "$(wget -qLO - https://github.com/whiskerz007/proxmox_hassos_install/raw/master/install.sh)"
+bash -c "$(wget -qLO - https://raw.githubusercontent.com/patriciocl/proxmox_hassos_install/master/install.sh)"
 ```
 
 After script completes, click on the new VM (_the script will tell you the ID_), click on the `Hardware` tab for the VM and change the `Memory` and `Processors` settings to what you desire. The `Hard Disk` can be expanded by clicking on it, then click on the `Resize disk` button above (_Note: additional steps must be taken for storage to take effect in the VM after the first boot_). The network MAC address can be changed by selecting `Network Device` and clicking `Edit` above. Once all changes have been made, click `Start` above.

@@ -111,6 +111,7 @@ FILE=$(basename $URL)
 # Extract Home Assistant disk image
 msg "Extracting disk image..."
 case $FILE in
+  *"zip") unzip $FILE;;
   *"gz") gunzip -f $FILE;;
   *"xz") xz -d $FILE;;
   *) die "Unable to handle file extension '${FILE##*.}'.";;

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+
+
 # Setup script environment
 set -o errexit  #Exit immediately if a pipeline returns a non-zero status
 set -o errtrace #Trap ERR from shell functions, command substitutions, and commands from subshell
@@ -9,6 +11,15 @@ shopt -s expand_aliases
 alias die='EXIT=$? LINE=$LINENO error_exit'
 trap die ERR
 trap cleanup EXIT
+
+#remove susbcription
+rm -rf /etc/apt/sources.list.d/pve-enterprise.list
+#add pve-no
+echo "deb http://download.proxmox.com/debian/pve bullseye pve-no-subscription" > /etc/apt/sources.list.d/pve-no-subscription.list
+apt-get update
+apt-get install -y zip unzip parted util-linux jq
+
+
 
 function error_exit() {
   trap - ERR
@@ -82,25 +93,25 @@ info "Container ID is $VMID."
 # Get latest Home Assistant disk image archive URL
 msg "Getting URL for latest Home Assistant disk image..."
 RELEASE_TYPE=vmdk
-URL=$(cat<<EOF | python3
-import requests
-url = "https://api.github.com/repos/home-assistant/operating-system/releases"
-r = requests.get(url).json()
-if "message" in r:
-    exit()
-for release in r:
-    if release["prerelease"]:
-        continue
-    for asset in release["assets"]:
-        if asset["name"].find("$RELEASE_TYPE") != -1:
-            image_url = asset["browser_download_url"]
-            print(image_url)
-            exit()
-EOF
-)
-if [ -z "$URL" ]; then
-  die "Github has returned an error. A rate limit may have been applied to your connection."
-fi
+
+
+
+URL_VERSION="https://api.github.com/repos/home-assistant/operating-system/tags"
+URL_FILEV=/tmp/version.txt
+curl -s -q -o $URL_FILEV $URL_VERSION
+VERSION=$(cat $URL_FILEV|jq -r '.[0].name')
+
+URL_RELEASE=https://api.github.com/repos/home-assistant/operating-system/releases
+URL_FILER=/tmp/release.txt
+
+curl -s -q -o $URL_FILER $URL_RELEASE
+URL=$(cat $URL_FILER|grep haos_ova-$VERSION.vmdk.zip|grep browser_download_url|sed -e 's/\"/\ /g'|awk '{print $3}')
+
+
+
+
+
+
 
 # Download Home Assistant disk image archive
 msg "Downloading disk image..."
@@ -113,16 +124,22 @@ msg "Extracting disk image..."
 case $FILE in
   *"gz") gunzip -f $FILE;;
   *"xz") xz -d $FILE;;
+  *"zip") unzip -q $FILE;;
   *) die "Unable to handle file extension '${FILE##*.}'.";;
 esac
 
 # Create variables for container disk
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
-if [ "$STORAGE_TYPE" = "dir" ]; then
-  DISK_EXT=".qcow2"
-  DISK_REF="$VMID/"
-  IMPORT_OPT="-format qcow2"
-fi
+msg "Extracting disk image..."
+case $STORAGE_TYPE in
+  nfs|dir)
+        DISK_EXT=".qcow2"
+        DISK_REF="$VMID/"
+        IMPORT_OPT="-format qcow2"
+        ;;
+  *) echo "next"
+;;
+esac
 for i in {0,1}; do
   disk="DISK$i"
   eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
@@ -132,13 +149,13 @@ done
 # Create VM
 msg "Creating VM..."
 VM_NAME=$(sed -e "s/\_//g" -e "s/.${RELEASE_TYPE}.*$//" <<< $FILE)
-qm create $VMID -agent 1 -bios ovmf -name $VM_NAME -net0 virtio,bridge=vmbr0 \
+qm create $VMID -cores 2 -memory 2048 -agent 1 -bios ovmf -name $VM_NAME -net0 virtio,bridge=vmbr0 \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
 qm importdisk $VMID ${FILE%.*} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm set $VMID \
   -efidisk0 ${DISK0_REF},size=128K \
-  -sata0 ${DISK1_REF},size=6G > /dev/null
+  -sata0 ${DISK1_REF},size=32G > /dev/null
 qm set $VMID \
   -boot order=sata0 > /dev/null
 

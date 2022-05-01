@@ -92,8 +92,22 @@ info "Container ID is $VMID."
 
 # Get latest Home Assistant disk image archive URL
 msg "Getting URL for latest Home Assistant disk image..."
-URL=https://github.com/home-assistant/operating-system/releases/download/8.0.rc3/haos_ova-8.0.rc3.vmdk.zip
 RELEASE_TYPE=vmdk
+
+#FIX VERSION OVA
+URL_VERSION="https://api.github.com/repos/home-assistant/operating-system/tags"
+URL_FILEV=/tmp/version.txt
+curl -s -q -o $URL_FILEV $URL_VERSION
+VERSION=$(cat $URL_FILEV|jq -r '.[0].name')
+URL_RELEASE=https://api.github.com/repos/home-assistant/operating-system/releases
+URL_FILER=/tmp/release.txt
+curl -s -q -o $URL_FILER $URL_RELEASE
+URL=$(cat $URL_FILER|grep haos_ova-$VERSION.$RELEASE_TYPE.zip|grep browser_download_url|sed -e 's/\"/\ /g'|awk '{print $3}')
+
+
+
+
+
 
 # Download Home Assistant disk image archive
 msg "Downloading disk image..."

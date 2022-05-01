@@ -17,7 +17,7 @@ rm -rf /etc/apt/sources.list.d/pve-enterprise.list
 #add pve-no
 echo "deb http://download.proxmox.com/debian/pve bullseye pve-no-subscription" > /etc/apt/sources.list.d/pve-no-subscription.list
 apt-get update
-apt-get install -y zip unzip parted util-linux
+apt-get install -y zip unzip parted util-linux jq
 
 
 
@@ -94,12 +94,18 @@ info "Container ID is $VMID."
 msg "Getting URL for latest Home Assistant disk image..."
 RELEASE_TYPE=vmdk
 
-#FIX VERSION OVA
+
+
+URL_VERSION="https://api.github.com/repos/home-assistant/operating-system/tags"
+URL_FILEV=/tmp/version.txt
+curl -s -q -o $URL_FILEV $URL_VERSION
+VERSION=$(cat $URL_FILEV|jq -r '.[0].name')
+
 URL_RELEASE=https://api.github.com/repos/home-assistant/operating-system/releases
 URL_FILER=/tmp/release.txt
+
 curl -s -q -o $URL_FILER $URL_RELEASE
-VERSION=$(curl -sX GET "$URL_RELEASE" | awk '/tag_name/{print $4;exit}' FS='[""]')
-URL=$(cat $URL_FILER|grep haos_ova-$VERSION.$RELEASE_TYPE.zip|grep browser_download_url|sed -e 's/\"/\ /g'|awk '{print $3}')
+URL=$(cat $URL_FILER|grep haos_ova-$VERSION.vmdk.zip|grep browser_download_url|sed -e 's/\"/\ /g'|awk '{print $3}')
 
 
 

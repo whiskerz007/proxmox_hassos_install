@@ -95,14 +95,12 @@ msg "Getting URL for latest Home Assistant disk image..."
 RELEASE_TYPE=vmdk
 
 #FIX VERSION OVA
-URL_VERSION="https://api.github.com/repos/home-assistant/operating-system/tags"
-URL_FILEV=/tmp/version.txt
-curl -s -q -o $URL_FILEV $URL_VERSION
-VERSION=$(cat $URL_FILEV|jq -r '.[0].name')
 URL_RELEASE=https://api.github.com/repos/home-assistant/operating-system/releases
 URL_FILER=/tmp/release.txt
 curl -s -q -o $URL_FILER $URL_RELEASE
+VERSION=$(curl -sX GET "$URL_RELEASE" | awk '/tag_name/{print $4;exit}' FS='[""]')
 URL=$(cat $URL_FILER|grep haos_ova-$VERSION.$RELEASE_TYPE.zip|grep browser_download_url|sed -e 's/\"/\ /g'|awk '{print $3}')
+
 
 
 
@@ -145,13 +143,13 @@ done
 # Create VM
 msg "Creating VM..."
 VM_NAME=$(sed -e "s/\_//g" -e "s/.${RELEASE_TYPE}.*$//" <<< $FILE)
-qm create $VMID -agent 1 -bios ovmf -name $VM_NAME -net0 virtio,bridge=vmbr0 \
+qm create $VMID -cores 2 -memory 2048 -agent 1 -bios ovmf -name $VM_NAME -net0 virtio,bridge=vmbr0 \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 128 1>&/dev/null
 qm importdisk $VMID ${FILE%.*} $STORAGE ${IMPORT_OPT:-} 1>&/dev/null
 qm set $VMID \
   -efidisk0 ${DISK0_REF},size=128K \
-  -sata0 ${DISK1_REF},size=6G > /dev/null
+  -sata0 ${DISK1_REF},size=32G > /dev/null
 qm set $VMID \
   -boot order=sata0 > /dev/null
 
